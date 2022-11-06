@@ -1,0 +1,8 @@
+*.swp
+*.swo
+*.pyc
+*.dat
+*.h5
+*.out
+input/
+temp/
