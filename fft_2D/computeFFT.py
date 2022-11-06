@@ -11,9 +11,9 @@ def fft_2d(Ak):
 def calcShellSpectrum(fk, temp, kSqr, nlin):
     al = glob.arrLim
 
-    ek = np.zeros(al + 1)
+    ek = np.zeros(al)
     if glob.cmpTrn:
-        Tk = np.zeros(al + 1)
+        Tk = np.zeros(al)
     else:
         Tk = 0
 
@@ -24,27 +24,13 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
     if glob.cmpTrn:
         Tk[0] = -(nlin[0,0]*np.conjugate(fk[0,0])).real
 
-    '''
-    k = glob.kInt
-    shInd = 1
-    while k < glob.minRad:
-        index = np.where((kSqr > (k - glob.kInt)**2) & (kSqr <= k**2))
-        ek[shInd] = np.sum(np.abs(temp[index])**2)
-        if glob.cmpTrn:
-            Tk[shInd] = -2.0*np.sum(((nlin*np.conjugate(temp)).real)[index])
-
-        #print("\t\tCompleted for k = {0:9.3f} out of {1:9.3f}".format(k, glob.minRad+glob.kInt))
-        shInd += 1
-        k += glob.kInt
-    '''
-
-    for k in range(1, al+1):
+    for k in range(1, al):
         index = np.where((kSqr > glob.kShell[k-1]**2) & (kSqr <= glob.kShell[k]**2))
         ek[k] = np.sum(np.abs(temp[index])**2)
         if glob.cmpTrn:
             Tk[k] = -2.0*np.sum(((nlin*np.conjugate(temp)).real)[index])
 
-        #print("\t\tCompleted for k = {0:9.3f} out of {1:9.3f}".format(k, glob.minRad+glob.kInt))
+        #print("\t\tCompleted for k = {0:3d} out of {1:3d}".format(k, al+1))
 
     return ek, Tk
 

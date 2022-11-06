@@ -76,7 +76,10 @@ def energyCheck(Ek):
     ke = (glob.U**2 + glob.W**2)/2.0
     keInt = integrate.simps(integrate.simps(ke, glob.Z), glob.X)/glob.tVol
     print("\t\tReal field energy =     {0:9.4f}".format(keInt))
-    print("\t\tShell spectrum energy = {0:9.4f}".format(np.sum(Ek)))
+
+    #keInt = integrate.simps(Ek, glob.kShell)/glob.kInt
+    keInt = np.sum(Ek)
+    print("\t\tShell spectrum energy = {0:9.4f}".format(keInt))
 
 
 def readFFT(tVal):
@@ -157,7 +160,8 @@ def main():
     plt.loglog(glob.kShell, Ek)
     plt.ylabel("E(k)")
     plt.xlabel("k")
-    plt.show()
+    plt.savefig("plot.png")
+    #plt.show()
 
 
 main()

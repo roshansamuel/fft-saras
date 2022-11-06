@@ -2,6 +2,7 @@
 *.swo
 *.pyc
 *.dat
+*.png
 *.h5
 *.out
 input/

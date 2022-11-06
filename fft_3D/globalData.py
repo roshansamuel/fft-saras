@@ -1,6 +1,6 @@
 import numpy as np
 
-inputDir = "./"
+inputDir = "../input/data_3D/"
 
 # Global variables
 Lx, Ly, Lz = 1.0, 1.0, 1.0

@@ -1,12 +1,15 @@
 import numpy as np
 
-inputDir = "../data_2D/"
+inputDir = "../input/data_2D/"
 
 # Global variables
 Lx, Lz = 2.0, 1.0
 Nx, Nz = 2048, 1024
 btX, btZ = 0.0, 1.3
 U, W, T, X, Z = 1, 1, 1, 1, 1
+
+# Limit kShells
+kLim = True
 
 # Should transfer function be computed?
 cmpTrn = False
@@ -18,55 +21,32 @@ kFactor = np.array([2.0*np.pi/Lx, 2.0*np.pi/Lz])
 kInt = min(kFactor)
 
 minRad = np.sqrt(np.dot((nGrid//2)*kFactor, (nGrid//2)*kFactor))
-arrLim = int(minRad/kInt)
 
-# Generate kShell
-#kShell = np.arange(0, minRad, kInt)
-def genShells():
-    k = kInt
-    kS = np.zeros(arrLim + 1)
-    shInd = 1
-    kS[0] = 0
-    while k < minRad:
-        kS[shInd] = k
-        shInd += 1
-        k += kInt
+# Generate kShells
+kShell = np.arange(0, minRad, kInt)
+arrLim = kShell.shape[0]
 
-    return kS
+# If kShells must be limited, change
+minStr = 5
+if kLim:
+    sInd = 0
+    indJump = 1
+    kNew = []
+    while True:
+        kNew.append(kShell[sInd])
+        sInd += indJump
 
-kShell = genShells()
+        if len(kNew)%minStr == 0:
+            indJump += 1
+
+        if sInd >= arrLim:
+            break
+
+    kShell = np.array(kNew)
+
+arrLim = kShell.shape[0]
 
 tVol = Lx*Lz
-
-# Generate index list
-def genIndex():
-    kx = np.arange(0, Nx, 1)
-    kz = np.arange(0, Nz//2 + 1, 1)
-
-    # Shift the wavenumbers
-    kx[Nx//2+1:] = kx[Nx//2+1:] - Nx
-
-    kx = kx*kFactor[0]
-    kz = kz*kFactor[1]
-
-    kX, kZ = np.meshgrid(kx, kz, indexing='ij')
-
-    kSqr = kX**2 + kZ**2
-
-    indList = []
-
-    k = kInt
-    shInd = 0
-    while k < minRad + kInt:
-        indList.append(np.where((kSqr > (k - kInt)**2) & (kSqr <= k**2)))
-        shInd += 1
-
-    print(len(indList))
-    exit()
-
-    return indList
-
-#indexList = genIndex()
 
 dXi = 1.0/(Nx)
 dZt = 1.0/(Nz)
