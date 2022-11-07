@@ -75,11 +75,10 @@ def uniformInterp(nlx, nlz):
 def energyCheck(Ek):
     ke = (glob.U**2 + glob.W**2)/2.0
     keInt = integrate.simps(integrate.simps(ke, glob.Z), glob.X)/glob.tVol
-    print("\t\tReal field energy =     {0:9.4f}".format(keInt))
+    print("\t\tReal field energy =     {0:10.8f}".format(keInt))
 
-    #keInt = integrate.simps(Ek, glob.kShell)/glob.kInt
-    keInt = np.sum(Ek)
-    print("\t\tShell spectrum energy = {0:9.4f}".format(keInt))
+    keInt = np.sum(np.dot(Ek[1:], glob.dk)) + Ek[0]
+    print("\t\tShell spectrum energy = {0:10.8f}".format(keInt))
 
 
 def readFFT(tVal):
@@ -156,12 +155,12 @@ def main():
             print("\tChecking energy balance")
             energyCheck(Ek)
 
-    np.savetxt("Ek.dat", Ek)
+    #np.savetxt("Ek.dat", Ek)
     plt.loglog(glob.kShell, Ek)
     plt.ylabel("E(k)")
     plt.xlabel("k")
-    plt.savefig("plot.png")
-    #plt.show()
+    #plt.savefig("plot.png")
+    plt.show()
 
 
 main()

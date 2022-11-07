@@ -91,8 +91,10 @@ def uniformInterp(nlx, nly, nlz):
 def energyCheck(Ek):
     ke = (glob.U**2 + glob.V**2 + glob.W**2)/2.0
     keInt = integrate.simps(integrate.simps(integrate.simps(ke, glob.Z), glob.Y), glob.X)/glob.tVol
-    print("\t\tReal field energy =     {0:9.4f}".format(keInt))
-    print("\t\tShell spectrum energy = {0:9.4f}".format(np.sum(Ek)))
+    print("\t\tReal field energy =     {0:10.8f}".format(keInt))
+
+    keInt = np.sum(np.dot(Ek[1:], glob.dk)) + Ek[0]
+    print("\t\tShell spectrum energy = {0:10.8f}".format(keInt))
 
 
 def readFFT(tVal):
@@ -114,13 +116,13 @@ def readFFT(tVal):
     return kShell, ekx, eky, ekz, Tkx, Tky, Tkz
 
 
-def writeFFT(tVal, kShell, ekx, eky, ekz, Tkx, Tky, Tkz):
+def writeFFT(tVal, ekx, eky, ekz, Tkx, Tky, Tkz):
     fileName = glob.inputDir + "FFT_{0:09.4f}.h5".format(tVal)
 
     print("\tWriting into file ", fileName)
     sFile = hp.File(fileName, 'w')
 
-    dset = sFile.create_dataset("kShell", data = kShell)
+    dset = sFile.create_dataset("kShell", data = glob.kShell)
     dset = sFile.create_dataset("ekx", data = ekx)
     dset = sFile.create_dataset("eky", data = eky)
     dset = sFile.create_dataset("ekz", data = ekz)
@@ -162,9 +164,9 @@ def main():
             nlx, nly, nlz = uniformInterp(nlx, nly, nlz)
 
             print("\tComputing FFT")
-            kShell, ekx, eky, ekz, Tkx, Tky, Tkz = fft.computeFFT(nlx, nly, nlz)
+            ekx, eky, ekz, Tkx, Tky, Tkz = fft.computeFFT(nlx, nly, nlz)
 
-            writeFFT(tVal, kShell, ekx, eky, ekz, Tkx, Tky, Tkz)
+            writeFFT(tVal, ekx, eky, ekz, Tkx, Tky, Tkz)
 
             Ek = ekx + eky + ekz
             if glob.cmpTrn:
@@ -173,9 +175,11 @@ def main():
             print("\tChecking energy balance")
             energyCheck(Ek)
 
-    plt.loglog(kShell, Ek)
+    #np.savetxt("Ek.dat", Ek)
+    plt.loglog(glob.kShell, Ek)
     plt.ylabel("E(k)")
     plt.xlabel("k")
+    #plt.savefig("plot.png")
     plt.show()
 
 

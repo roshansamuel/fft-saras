@@ -44,6 +44,7 @@ if kLim:
 
     kShell = np.array(kNew)
 
+dk = np.diff(kShell)
 arrLim = kShell.shape[0]
 
 tVol = Lx*Lz

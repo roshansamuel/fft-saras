@@ -26,9 +26,9 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
 
     for k in range(1, al):
         index = np.where((kSqr > glob.kShell[k-1]**2) & (kSqr <= glob.kShell[k]**2))
-        ek[k] = np.sum(np.abs(temp[index])**2)
+        ek[k] = np.sum(np.abs(temp[index])**2)/glob.dk[k-1]
         if glob.cmpTrn:
-            Tk[k] = -2.0*np.sum(((nlin*np.conjugate(temp)).real)[index])
+            Tk[k] = -2.0*np.sum(((nlin*np.conjugate(temp)).real)[index])/glob.dk[k-1]
 
         #print("\t\tCompleted for k = {0:3d} out of {1:3d}".format(k, al+1))
 

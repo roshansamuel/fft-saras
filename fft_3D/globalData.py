@@ -19,8 +19,13 @@ nGrid = np.array([Nx, Ny, Nz])
 kFactor = np.array([2.0*np.pi/Lx, 2.0*np.pi/Ly, 2.0*np.pi/Lz])
 kInt = min(kFactor)*shSkip
 
-minRad = int(np.sqrt(np.dot((nGrid//2)*kFactor, (nGrid//2)*kFactor)))
-arrLim = int(np.sqrt(np.dot((nGrid//2)*kFactor, (nGrid//2)*kFactor))/kInt)
+minRad = np.sqrt(np.dot((nGrid//2)*kFactor, (nGrid//2)*kFactor))
+
+# Generate kShells
+kShell = np.arange(0, minRad, kInt)
+
+dk = np.diff(kShell)
+arrLim = kShell.shape[0]
 
 tVol = Lx*Ly*Lz
 
