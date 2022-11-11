@@ -52,7 +52,7 @@ def interpolateData(f, xO, zO):
     return f
 
 
-def uniformInterp(nlx, nlz):
+def uniformInterp():
     xU = np.linspace(0.0, glob.Lx, Nx)
     zU = np.linspace(0.0, glob.Lz, Nz)
 
@@ -60,16 +60,12 @@ def uniformInterp(nlx, nlz):
     glob.W = interpolateData(glob.W, xU, zU)
     glob.T = interpolateData(glob.T, xU, zU)
 
-    if glob.cmpTrn:
-        nlx = interpolateData(nlx, xU, zU)
-        nlz = interpolateData(nlz, xU, zU)
-    else:
-        nlx, nlz = 0, 0
+    if glob.cmpTrn and glob.realNLin:
+        glob.nlx = interpolateData(glob.nlx, xU, zU)
+        glob.nlz = interpolateData(glob.nlz, xU, zU)
 
     glob.X = xU
     glob.Z = zU
-
-    return nlx, nlz
 
 
 def energyCheck(Ek):
@@ -133,18 +129,21 @@ def main():
             loadData(fileName)
 
             # Compute non-linear terms
-            if glob.cmpTrn:
+            if glob.cmpTrn and glob.realNLin:
                 print("\tComputing non-linear term")
-                nlx, nlz = nlin.computeNLin()
+                glob.nlx, glob.nlz = nlin.computeNLin()
             else:
-                nlx, nlz = 0, 0
+                glob.nlx, glob.nlz = 0, 0
 
             # Interpolate data to uniform grid
             print("\tInterpolating to uniform grid")
-            nlx, nlz = uniformInterp(nlx, nlz)
+            uniformInterp()
 
             print("\tComputing FFT")
-            ekx, ekz, Tkx, Tkz = fft.computeFFT(nlx, nlz)
+            if glob.realNLin:
+                ekx, ekz, Tkx, Tkz = fft.computeFFT(0, 0, 0)
+            else:
+                ekx, ekz, Tkx, Tkz = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W)
 
             writeFFT(tVal, ekx, ekz, Tkx, Tkz)
 
@@ -155,12 +154,36 @@ def main():
             print("\tChecking energy balance")
             energyCheck(Ek)
 
-    #np.savetxt("Ek.dat", Ek)
-    plt.loglog(glob.kShell, Ek)
-    plt.ylabel("E(k)")
-    plt.xlabel("k")
-    #plt.savefig("plot.png")
-    plt.show()
+    Pi = np.zeros_like(Tk)
+    Pi[0] = -Tk[0]
+    Pi[1:] = -np.cumsum(Tk[1:]*glob.dk, axis=0) + Pi[0]
+
+    showPlot = 3
+    if showPlot == 1:
+        plt.loglog(glob.kShell, Ek)
+        plt.ylabel("E(k)")
+        plt.xlabel("k")
+        plt.show()
+    elif showPlot == 2:
+        plt.plot(glob.kShell, Tk)
+        plt.xscale("log")
+        #plt.yscale("log")
+        plt.yscale("symlog", linthreshy=1e-10, bullshit=7)
+        plt.ylabel("T(k)")
+        #plt.ylim(-5e-3, 5e-3)
+        #plt.yticks([-5e-3, 0, 5e-3])
+        plt.xlabel("k")
+        plt.show()
+    elif showPlot == 3:
+        plt.plot(glob.kShell, Pi)
+        plt.xscale("log")
+        #plt.yscale("log")
+        plt.yscale("symlog", linthreshy=1e-10, bullshit=7)
+        plt.ylabel(r"$\Pi(k)$")
+        #plt.ylim(-5e-3, 5e-3)
+        #plt.yticks([-5e-3, 0, 5e-3])
+        plt.xlabel("k")
+        plt.show()
 
 
 main()

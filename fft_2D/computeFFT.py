@@ -35,7 +35,7 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
     return ek, Tk
 
 
-def computeFFT(nlx, nlz):
+def computeFFT(uu, uw, ww):
     temp = np.zeros((Nx, Nz//2 + 1), dtype="complex")
 
     kx = np.arange(0, Nx, 1)
@@ -56,10 +56,18 @@ def computeFFT(nlx, nlz):
     tk = fft_2d(glob.T)
 
     if glob.cmpTrn:
-        nlinx = fft_2d(nlx)
-        nlinz = fft_2d(nlz)
+        if glob.realNLin:
+            nlinx = fft_2d(glob.nlx)
+            nlinz = fft_2d(glob.nlz)
+        else:
+            nlinx = 1j*(kx[:, np.newaxis]*fft_2d(uu) + kz*fft_2d(uw))
+            nlinz = 1j*(kx[:, np.newaxis]*fft_2d(uw) + kz*fft_2d(ww))
     else:
         nlinx, nlinz = 0, 0
+
+    #np.savetxt("temp.dat", np.abs(nlinx))
+    #print(nlinz.shape)
+    #exit()
 
     print("\tCalculating shell spectrum")
     # Calculate shell spectrum

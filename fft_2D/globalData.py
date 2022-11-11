@@ -7,12 +7,20 @@ Lx, Lz = 2.0, 1.0
 Nx, Nz = 2048, 1024
 btX, btZ = 0.0, 1.3
 U, W, T, X, Z = 1, 1, 1, 1, 1
+nlx, nlz = 1, 1
 
 # Limit kShells
 kLim = True
 
 # Should transfer function be computed?
-cmpTrn = False
+cmpTrn = True
+
+# If transfer function is computed, should nlin term be computed in real space?
+realNLin = True
+
+# If computing nlin term in real space, should conservative form be used?
+consNLin = True
+
 # Read existing FFT vs compute anew
 readFile = False
 
