@@ -65,10 +65,6 @@ def computeFFT(uu, uw, ww):
     else:
         nlinx, nlinz = 0, 0
 
-    #np.savetxt("temp.dat", np.abs(nlinx))
-    #print(nlinz.shape)
-    #exit()
-
     print("\tCalculating shell spectrum")
     # Calculate shell spectrum
     ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)

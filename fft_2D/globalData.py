@@ -10,7 +10,7 @@ U, W, T, X, Z = 1, 1, 1, 1, 1
 nlx, nlz = 1, 1
 
 # Limit kShells
-kLim = True
+kLim = False
 
 # Should transfer function be computed?
 cmpTrn = True

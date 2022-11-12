@@ -86,15 +86,19 @@ def readFFT(tVal):
     kShell = np.array(sFile["kShell"])
     ekx = np.array(sFile["ekx"])
     ekz = np.array(sFile["ekz"])
-    Tkx = np.array(sFile["Tkx"])
-    Tkz = np.array(sFile["Tkz"])
+    if glob.cmpTrn:
+        Tk = np.array(sFile["Tk"])
+        Pk = np.array(sFile["Pk"])
+    else:
+        Tk = np.zeros_like(ekx)
+        Pk = np.zeros_like(ekx)
 
     sFile.close()
 
-    return kShell, ekx, ekz, Tkx, Tkz
+    return kShell, ekx, ekz, Tk, Pk
 
 
-def writeFFT(tVal, ekx, ekz, Tkx, Tkz):
+def writeFFT(tVal, ekx, ekz, Tk, Pk):
     fileName = glob.inputDir + "FFT_{0:09.4f}.h5".format(tVal)
 
     print("\tWriting into file ", fileName)
@@ -103,8 +107,10 @@ def writeFFT(tVal, ekx, ekz, Tkx, Tkz):
     dset = sFile.create_dataset("kShell", data = glob.kShell)
     dset = sFile.create_dataset("ekx", data = ekx)
     dset = sFile.create_dataset("ekz", data = ekz)
-    dset = sFile.create_dataset("Tkx", data = Tkx)
-    dset = sFile.create_dataset("Tkz", data = Tkz)
+
+    if glob.cmpTrn:
+        dset = sFile.create_dataset("Tk", data = Tk)
+        dset = sFile.create_dataset("Pk", data = Pk)
 
     sFile.close()
 
@@ -118,11 +124,9 @@ def main():
     #for i in range(tList.shape[0]):
         tVal = tList[i]
         if glob.readFile:
-            kShell, ekx, ekz, Tkx, Tkz = readFFT(tVal)
+            kShell, ekx, ekz, Tk, Pk = readFFT(tVal)
 
             Ek = ekx + ekz
-            if glob.cmpTrn:
-                Tk = Tkx + Tkz
 
         else:
             fileName = glob.inputDir + "Soln_{0:09.4f}.h5".format(tVal)
@@ -145,18 +149,21 @@ def main():
             else:
                 ekx, ekz, Tkx, Tkz = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W)
 
-            writeFFT(tVal, ekx, ekz, Tkx, Tkz)
-
             Ek = ekx + ekz
             if glob.cmpTrn:
                 Tk = Tkx + Tkz
 
+                Pk = np.zeros_like(Tk)
+                Pk[0] = -Tk[0]
+                Pk[1:] = -np.cumsum(Tk[1:]*glob.dk, axis=0) + Pk[0]
+            else:
+                Tk = np.zeros_like(Ek)
+                Pk = np.zeros_like(Ek)
+
+            writeFFT(tVal, ekx, ekz, Tk, Pk)
+
             print("\tChecking energy balance")
             energyCheck(Ek)
-
-    Pi = np.zeros_like(Tk)
-    Pi[0] = -Tk[0]
-    Pi[1:] = -np.cumsum(Tk[1:]*glob.dk, axis=0) + Pi[0]
 
     showPlot = 3
     if showPlot == 1:
@@ -167,18 +174,16 @@ def main():
     elif showPlot == 2:
         plt.plot(glob.kShell, Tk)
         plt.xscale("log")
-        #plt.yscale("log")
-        plt.yscale("symlog", linthreshy=1e-10, bullshit=7)
+        plt.yscale("symlog", linthreshy=1e-10)
         plt.ylabel("T(k)")
         #plt.ylim(-5e-3, 5e-3)
         #plt.yticks([-5e-3, 0, 5e-3])
         plt.xlabel("k")
         plt.show()
     elif showPlot == 3:
-        plt.plot(glob.kShell, Pi)
+        plt.plot(glob.kShell, Pk)
         plt.xscale("log")
-        #plt.yscale("log")
-        plt.yscale("symlog", linthreshy=1e-10, bullshit=7)
+        plt.yscale("symlog", linthreshy=1e-10)
         plt.ylabel(r"$\Pi(k)$")
         #plt.ylim(-5e-3, 5e-3)
         #plt.yticks([-5e-3, 0, 5e-3])

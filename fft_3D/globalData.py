@@ -7,9 +7,17 @@ Lx, Ly, Lz = 1.0, 1.0, 1.0
 Nx, Ny, Nz = 64, 64, 64
 btX, btY, btZ = 0.0, 0.0, 1.3
 U, V, W, T, X, Y, Z = 1, 1, 1, 1, 1, 1, 1
+nlx, nly, nlz = 1, 1, 1
 
 # Should transfer function be computed?
-cmpTrn = False
+cmpTrn = True
+
+# If transfer function is computed, should nlin term be computed in real space?
+realNLin = True
+
+# If computing nlin term in real space, should conservative form be used?
+consNLin = True
+
 # Read existing FFT vs compute anew
 readFile = False
 # Shells to skip - for very large files

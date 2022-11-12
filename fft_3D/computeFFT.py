@@ -36,7 +36,7 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
     return ek, Tk
 
 
-def computeFFT(nlx, nly, nlz):
+def computeFFT(uu, vv, ww, uv, vw, wu):
     temp = np.zeros((Nx, Ny, Nz//2 + 1), dtype="complex")
 
     kx = np.arange(0, Nx, 1)
@@ -61,9 +61,14 @@ def computeFFT(nlx, nly, nlz):
     tk = fft_3d(glob.T)
 
     if glob.cmpTrn:
-        nlinx = fft_3d(nlx)
-        nliny = fft_3d(nly)
-        nlinz = fft_3d(nlz)
+        if glob.realNLin:
+            nlinx = fft_3d(glob.nlx)
+            nliny = fft_3d(glob.nly)
+            nlinz = fft_3d(glob.nlz)
+        else:
+            nlinx = 1j*(kx[:, np.newaxis, np.newaxis]*fft_2d(uu) + ky[:, np.newaxis]*fft_2d(uv) + kz*fft_2d(wu))
+            nliny = 1j*(kx[:, np.newaxis, np.newaxis]*fft_2d(uv) + ky[:, np.newaxis]*fft_2d(vv) + kz*fft_2d(vw))
+            nlinz = 1j*(kx[:, np.newaxis, np.newaxis]*fft_2d(wu) + ky[:, np.newaxis]*fft_2d(vw) + kz*fft_2d(ww))
     else:
         nlinx, nliny, nlinz = 0, 0, 0
 
