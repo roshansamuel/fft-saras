@@ -137,7 +137,8 @@ def main():
     Tk = np.mean(Tk[:, 200:-200], axis=1)
     Pk = np.mean(Pk[:, 200:-200], axis=1)
 
-    showPlot = 3
+    #np.savetxt("out.dat", np.stack((glob.kShell, Ek, Tk, Pk), axis=1))
+    showPlot = 0
     if showPlot == 1:
         plt.loglog(glob.kShell, Ek)
         plt.ylabel("E(k)")
