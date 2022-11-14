@@ -30,12 +30,10 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
         if glob.cmpTrn:
             Tk[k] = -2.0*np.sum(((nlin*np.conjugate(temp)).real)[index])/glob.dk[k-1]
 
-        #print("\t\tCompleted for k = {0:3d} out of {1:3d}".format(k, al+1))
-
     return ek, Tk
 
 
-def computeFFT(uu, uw, ww):
+def computeFFT(uu, uw, ww, uT, wT):
     temp = np.zeros((Nx, Nz//2 + 1), dtype="complex")
 
     kx = np.arange(0, Nx, 1)
@@ -59,16 +57,19 @@ def computeFFT(uu, uw, ww):
         if glob.realNLin:
             nlinx = fft_2d(glob.nlx)
             nlinz = fft_2d(glob.nlz)
+            nlinT = fft_2d(glob.nlT)
         else:
             nlinx = 1j*(kx[:, np.newaxis]*fft_2d(uu) + kz*fft_2d(uw))
             nlinz = 1j*(kx[:, np.newaxis]*fft_2d(uw) + kz*fft_2d(ww))
+            nlinT = 1j*(kx[:, np.newaxis]*fft_2d(uT) + kz*fft_2d(wT))
     else:
-        nlinx, nlinz = 0, 0
+        nlinx, nlinz, nlinT = 0, 0, 0
 
     print("\tCalculating shell spectrum")
     # Calculate shell spectrum
     ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)
     ekz, Tkz = calcShellSpectrum(wk, temp, kSqr, nlinz)
+    ekT, TkT = calcShellSpectrum(tk, temp, kSqr, nlinT)
 
-    return ekx, ekz, Tkx, Tkz
+    return ekx, ekz, Tkx, Tkz, ekT, TkT
 

@@ -1,13 +1,17 @@
 import numpy as np
+import yamlRead as yr
 
-inputDir = "../input/data_2D/"
+dataDir = "../data/data_2D/1_Ra_1e11/"
+
+# Is YAML file available?
+readYAML = True
 
 # Global variables
-Lx, Lz = 2.0, 1.0
-Nx, Nz = 4096, 2048
-btX, btZ = 0.0, 1.3
+Lx, Lz = 1.0, 1.0
+Nx, Nz = 100, 100
+btX, btZ = 0.0, 0.0
 U, W, T, X, Z = 1, 1, 1, 1, 1
-nlx, nlz = 1, 1
+nlx, nlz, nlT = 1, 1, 1
 
 # Limit kShells
 kLim = True
@@ -24,6 +28,10 @@ consNLin = True
 # Read existing FFT vs compute anew
 readFile = False
 
+# If YAML file is available, parse it
+if readYAML:
+    yr.parseYAML(dataDir)
+
 nGrid = np.array([Nx, Nz])
 kFactor = np.array([2.0*np.pi/Lx, 2.0*np.pi/Lz])
 kInt = min(kFactor)
@@ -35,7 +43,7 @@ kShell = np.arange(0, minRad, kInt)
 arrLim = kShell.shape[0]
 
 # If kShells must be limited, change
-minStr = 5
+minStr = 32
 if kLim:
     sInd = 0
     indJump = 1
@@ -44,11 +52,12 @@ if kLim:
         kNew.append(kShell[sInd])
         sInd += indJump
 
-        if len(kNew)%minStr == 0:
-            indJump += 1
+        if kNew[-1] > 200:
+            if len(kNew)%minStr == 0:
+                indJump += 2
 
-        if sInd >= arrLim:
-            break
+            if sInd >= arrLim:
+                break
 
     kShell = np.array(kNew)
 

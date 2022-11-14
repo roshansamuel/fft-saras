@@ -8,4 +8,4 @@ def nlinTerm(F):
         return glob.U*df.dfx(F) + glob.W*df.dfz(F)
 
 def computeNLin():
-    return nlinTerm(glob.U), nlinTerm(glob.W)
+    return nlinTerm(glob.U), nlinTerm(glob.W), nlinTerm(glob.T)

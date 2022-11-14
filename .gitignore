@@ -5,5 +5,5 @@
 *.png
 *.h5
 *.out
-input/
+data/
 temp/

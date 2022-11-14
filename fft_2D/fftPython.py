@@ -63,6 +63,7 @@ def uniformInterp():
     if glob.cmpTrn and glob.realNLin:
         glob.nlx = interpolateData(glob.nlx, xU, zU)
         glob.nlz = interpolateData(glob.nlz, xU, zU)
+        glob.nlT = interpolateData(glob.nlT, xU, zU)
 
     glob.X = xU
     glob.Z = zU
@@ -78,7 +79,7 @@ def energyCheck(Ek):
 
 
 def readFFT(tVal):
-    fileName = glob.inputDir + "FFT_{0:09.4f}.h5".format(tVal)
+    fileName = glob.dataDir + "output/FFT_{0:09.4f}.h5".format(tVal)
 
     print("\nReading from file ", fileName)
     sFile = hp.File(fileName, 'r')
@@ -86,20 +87,27 @@ def readFFT(tVal):
     kShell = np.array(sFile["kShell"])
     ekx = np.array(sFile["ekx"])
     ekz = np.array(sFile["ekz"])
+    EkT = np.array(sFile["EkT"])
+
     if glob.cmpTrn:
-        Tk = np.array(sFile["Tk"])
-        Pk = np.array(sFile["Pk"])
+        Tku = np.array(sFile["Tku"])
+        Pku = np.array(sFile["Pku"])
+
+        TkT = np.array(sFile["TkT"])
+        PkT = np.array(sFile["PkT"])
     else:
-        Tk = np.zeros_like(ekx)
-        Pk = np.zeros_like(ekx)
+        Tku = np.zeros_like(ekx)
+        Pku = np.zeros_like(ekx)
+        TkT = np.zeros_like(ekx)
+        PkT = np.zeros_like(ekx)
 
     sFile.close()
 
-    return kShell, ekx, ekz, Tk, Pk
+    return kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT
 
 
-def writeFFT(tVal, ekx, ekz, Tk, Pk):
-    fileName = glob.inputDir + "FFT_{0:09.4f}.h5".format(tVal)
+def writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT):
+    fileName = glob.dataDir + "output/FFT_{0:09.4f}.h5".format(tVal)
 
     print("\tWriting into file ", fileName)
     sFile = hp.File(fileName, 'w')
@@ -107,37 +115,39 @@ def writeFFT(tVal, ekx, ekz, Tk, Pk):
     dset = sFile.create_dataset("kShell", data = glob.kShell)
     dset = sFile.create_dataset("ekx", data = ekx)
     dset = sFile.create_dataset("ekz", data = ekz)
+    dset = sFile.create_dataset("EkT", data = EkT)
 
     if glob.cmpTrn:
-        dset = sFile.create_dataset("Tk", data = Tk)
-        dset = sFile.create_dataset("Pk", data = Pk)
+        dset = sFile.create_dataset("Tku", data = Tku)
+        dset = sFile.create_dataset("Pku", data = Pku)
+
+        dset = sFile.create_dataset("TkT", data = TkT)
+        dset = sFile.create_dataset("PkT", data = PkT)
 
     sFile.close()
 
 
 def main():
     # Load timelist
-    tList = np.loadtxt(glob.inputDir + "timeList.dat", comments='#')
+    tList = np.loadtxt(glob.dataDir + "output/timeList.dat", comments='#')
 
-    tList = [tList]
-    for i in range(1):
-    #for i in range(tList.shape[0]):
+    for i in range(tList.shape[0]):
         tVal = tList[i]
         if glob.readFile:
-            kShell, ekx, ekz, Tk, Pk = readFFT(tVal)
+            kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT = readFFT(tVal)
 
-            Ek = ekx + ekz
+            Eku = ekx + ekz
 
         else:
-            fileName = glob.inputDir + "Soln_{0:09.4f}.h5".format(tVal)
+            fileName = glob.dataDir + "output/Soln_{0:09.4f}.h5".format(tVal)
             loadData(fileName)
 
             # Compute non-linear terms
             if glob.cmpTrn and glob.realNLin:
                 print("\tComputing non-linear term")
-                glob.nlx, glob.nlz = nlin.computeNLin()
+                glob.nlx, glob.nlz, glob.nlT = nlin.computeNLin()
             else:
-                glob.nlx, glob.nlz = 0, 0
+                glob.nlx, glob.nlz, glob.nlT = 0, 0, 0
 
             # Interpolate data to uniform grid
             print("\tInterpolating to uniform grid")
@@ -145,34 +155,39 @@ def main():
 
             print("\tComputing FFT")
             if glob.realNLin:
-                ekx, ekz, Tkx, Tkz = fft.computeFFT(0, 0, 0)
+                ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(0, 0, 0, 0, 0)
             else:
-                ekx, ekz, Tkx, Tkz = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W)
+                ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
 
-            Ek = ekx + ekz
+            Eku = ekx + ekz
             if glob.cmpTrn:
-                Tk = Tkx + Tkz
+                Tku = Tkx + Tkz
 
-                Pk = np.zeros_like(Tk)
-                Pk[0] = -Tk[0]
-                Pk[1:] = -np.cumsum(Tk[1:]*glob.dk, axis=0) + Pk[0]
+                Pku = np.zeros_like(Tku)
+                Pku[0] = -Tku[0]
+                Pku[1:] = -np.cumsum(Tku[1:]*glob.dk, axis=0) + Pku[0]
+
+                PkT = np.zeros_like(TkT)
+                PkT[0] = -TkT[0]
+                PkT[1:] = -np.cumsum(TkT[1:]*glob.dk, axis=0) + PkT[0]
             else:
-                Tk = np.zeros_like(Ek)
-                Pk = np.zeros_like(Ek)
+                Tku = np.zeros_like(Eku)
+                Pku = np.zeros_like(Eku)
+                PkT = np.zeros_like(EkT)
 
-            writeFFT(tVal, ekx, ekz, Tk, Pk)
+            writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT)
 
             print("\tChecking energy balance")
-            energyCheck(Ek)
+            energyCheck(Eku)
 
-    showPlot = 3
+    showPlot = 0
     if showPlot == 1:
-        plt.loglog(glob.kShell, Ek)
+        plt.loglog(glob.kShell, Eku)
         plt.ylabel("E(k)")
         plt.xlabel("k")
         plt.show()
     elif showPlot == 2:
-        plt.plot(glob.kShell, Tk)
+        plt.plot(glob.kShell, Tku)
         plt.xscale("log")
         plt.yscale("symlog", linthreshy=1e-10)
         plt.ylabel("T(k)")
@@ -181,7 +196,7 @@ def main():
         plt.xlabel("k")
         plt.show()
     elif showPlot == 3:
-        plt.plot(glob.kShell, Pk)
+        plt.plot(glob.kShell, Pku)
         plt.xscale("log")
         plt.yscale("symlog", linthreshy=1e-10)
         plt.ylabel(r"$\Pi(k)$")
