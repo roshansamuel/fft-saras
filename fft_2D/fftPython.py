@@ -31,6 +31,10 @@ def loadData(fileName):
 
     imposeBCs()
 
+    # Subtract mean profile
+    if glob.useTheta:
+        glob.T -= (1 - glob.Z)
+
 
 def imposeBCs():
     # Periodic along X

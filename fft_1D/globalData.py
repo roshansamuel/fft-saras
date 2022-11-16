@@ -1,6 +1,6 @@
 import numpy as np
 
-inputDir = "../input/data_2D/"
+dataDir = "../data/data_2D/1_Ra_1e11/"
 
 # Global variables
 Lx, Lz = 2.0, 1.0

@@ -63,17 +63,8 @@ def uniformInterp():
     glob.Z = zU
 
 
-def energyCheck(Ek):
-    ke = (glob.U**2 + glob.W**2)/2.0
-    keInt = integrate.simps(integrate.simps(ke, glob.Z), glob.X)/glob.tVol
-    print("\t\tReal field energy =     {0:10.8f}".format(keInt))
-
-    keInt = np.sum(np.dot(Ek[1:], glob.dk)) + Ek[0]
-    print("\t\tShell spectrum energy = {0:10.8f}".format(keInt))
-
-
 def readFFT(tVal):
-    fileName = glob.inputDir + "FFT_{0:09.4f}.h5".format(tVal)
+    fileName = glob.dataDir + "output/FFT_{0:09.4f}.h5".format(tVal)
 
     print("\nReading from file ", fileName)
     sFile = hp.File(fileName, 'r')
@@ -87,7 +78,7 @@ def readFFT(tVal):
 
 
 def writeFFT(tVal, Ek):
-    fileName = glob.inputDir + "FFT_{0:09.4f}.h5".format(tVal)
+    fileName = glob.dataDir + "output/FFT_{0:09.4f}.h5".format(tVal)
 
     print("\tWriting into file ", fileName)
     sFile = hp.File(fileName, 'w')
@@ -100,17 +91,15 @@ def writeFFT(tVal, Ek):
 
 def main():
     # Load timelist
-    tList = np.loadtxt(glob.inputDir + "timeList.dat", comments='#')
+    tList = np.loadtxt(glob.dataDir + "output/timeList.dat", comments='#')
 
-    tList = [tList]
-    for i in range(1):
-    #for i in range(tList.shape[0]):
+    for i in range(tList.shape[0]):
         tVal = tList[i]
         if glob.readFile:
             kShell, Ek = readFFT(tVal)
 
         else:
-            fileName = glob.inputDir + "Soln_{0:09.4f}.h5".format(tVal)
+            fileName = glob.dataDir + "output/Soln_{0:09.4f}.h5".format(tVal)
             loadData(fileName)
 
             # Interpolate data to uniform grid
@@ -122,9 +111,6 @@ def main():
 
             #writeFFT(tVal, Ek)
 
-            #print("\tChecking energy balance")
-            #energyCheck(Ek)
-
     Pk = np.zeros_like(Tk)
     Pk[0,:] = -Tk[0,:]
     #Pk[1:,:] = -np.cumsum(Tk[1:,:]*glob.dk, axis=0) + Pk[0,:]
@@ -133,13 +119,18 @@ def main():
     #Ek = np.mean(Ek[:,:], axis=1)
     #Tk = np.mean(Tk[:,:], axis=1)
     #Pk = np.mean(Pk[:,:], axis=1)
-    Ek = np.mean(Ek[:, 200:-200], axis=1)
-    Tk = np.mean(Tk[:, 200:-200], axis=1)
-    Pk = np.mean(Pk[:, 200:-200], axis=1)
+
+    #Ek = np.mean(Ek[:, 200:-200], axis=1)
+    #Tk = np.mean(Tk[:, 200:-200], axis=1)
+    #Pk = np.mean(Pk[:, 200:-200], axis=1)
 
     #np.savetxt("out.dat", np.stack((glob.kShell, Ek, Tk, Pk), axis=1))
-    showPlot = 0
+    showPlot = 4
     if showPlot == 1:
+        Ek = np.mean(Ek[:, 200:-200], axis=1)
+        Tk = np.mean(Tk[:, 200:-200], axis=1)
+        Pk = np.mean(Pk[:, 200:-200], axis=1)
+
         plt.loglog(glob.kShell, Ek)
         plt.ylabel("E(k)")
         plt.xlabel("k")
@@ -163,13 +154,32 @@ def main():
         plt.xlabel("k")
         plt.show()
     elif showPlot == 4:
-        plt.plot(glob.kShell, Pk)
-        plt.xscale("log")
-        plt.yscale("symlog", linthreshy=1e-10)
-        plt.ylabel(r"$\Pi(k)$")
-        #plt.ylim(-5e-3, 5e-3)
-        #plt.yticks([-5e-3, 0, 5e-3])
+        figSize = (17, 7)
+        fig = plt.figure(figsize=figSize)
+
+        ax = fig.add_subplot(1, 2, 1)
+        plt.loglog(glob.kShell, Ek[:, 1], label="Z Point = {0:3d}".format(1))
+
+        A = Ek[2, 1]*(glob.kShell[2]**(5.0/3.0))
+        inRangeStr = 1e1
+        inRangeEnd = 5e2
+        inRange = np.linspace(inRangeStr, inRangeEnd, 100)
+        kolmLin = A*inRange**(-5.0/3.0)
+        ax.loglog(inRange, kolmLin, linestyle='--', linewidth=2.5, color='black', label=r"$k^{-{11/5}}$")
+
+        ax = fig.add_subplot(1, 2, 2)
+        plt.loglog(glob.kShell, Ek[:, 50], label="Z Point = {0:3d}".format(50))
+
+        A = 1.2
+        inRangeStr = 1e1
+        inRangeEnd = 5e2
+        inRange = np.linspace(inRangeStr, inRangeEnd, 100)
+        kolmLin = A*inRange**(-11.0/5.0)
+        ax.loglog(inRange, kolmLin, linestyle='--', linewidth=2.5, color='black', label=r"$k^{-{11/5}}$")
+
+        plt.ylabel("E(k)")
         plt.xlabel("k")
+        plt.legend()
         plt.show()
 
 main()

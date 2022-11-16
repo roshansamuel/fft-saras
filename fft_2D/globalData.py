@@ -25,6 +25,9 @@ realNLin = False
 # If computing nlin term in real space, should conservative form be used?
 consNLin = True
 
+# Use theta (temperature fluctuation) instead of T (temperature)
+useTheta = True
+
 # Read existing FFT vs compute anew
 readFile = False
 
