@@ -20,16 +20,19 @@ kLim = True
 cmpTrn = True
 
 # If transfer function is computed, should nlin term be computed in real space?
-realNLin = False
+realNLin = True
 
 # If computing nlin term in real space, should conservative form be used?
-consNLin = True
+consNLin = False
 
 # Use theta (temperature fluctuation) instead of T (temperature)
 useTheta = True
 
 # Read existing FFT vs compute anew
 readFile = False
+
+# Specify starting time for calculations. Use 0 to include all in timeList.dat
+startTime = 717.0
 
 # If YAML file is available, parse it
 if readYAML:

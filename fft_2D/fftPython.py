@@ -137,52 +137,53 @@ def main():
 
     for i in range(tList.shape[0]):
         tVal = tList[i]
-        if glob.readFile:
-            kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT = readFFT(tVal)
+        if tVal > glob.startTime:
+            if glob.readFile:
+                kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT = readFFT(tVal)
 
-            Eku = ekx + ekz
+                Eku = ekx + ekz
 
-        else:
-            fileName = glob.dataDir + "output/Soln_{0:09.4f}.h5".format(tVal)
-            loadData(fileName)
-
-            # Compute non-linear terms
-            if glob.cmpTrn and glob.realNLin:
-                print("\tComputing non-linear term")
-                glob.nlx, glob.nlz, glob.nlT = nlin.computeNLin()
             else:
-                glob.nlx, glob.nlz, glob.nlT = 0, 0, 0
+                fileName = glob.dataDir + "output/Soln_{0:09.4f}.h5".format(tVal)
+                loadData(fileName)
 
-            # Interpolate data to uniform grid
-            print("\tInterpolating to uniform grid")
-            uniformInterp()
+                # Compute non-linear terms
+                if glob.cmpTrn and glob.realNLin:
+                    print("\tComputing non-linear term")
+                    glob.nlx, glob.nlz, glob.nlT = nlin.computeNLin()
+                else:
+                    glob.nlx, glob.nlz, glob.nlT = 0, 0, 0
 
-            print("\tComputing FFT")
-            if glob.realNLin:
-                ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(0, 0, 0, 0, 0)
-            else:
-                ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
+                # Interpolate data to uniform grid
+                print("\tInterpolating to uniform grid")
+                uniformInterp()
 
-            Eku = ekx + ekz
-            if glob.cmpTrn:
-                Tku = Tkx + Tkz
+                print("\tComputing FFT")
+                if glob.realNLin:
+                    ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(0, 0, 0, 0, 0)
+                else:
+                    ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
 
-                Pku = np.zeros_like(Tku)
-                Pku[0] = -Tku[0]
-                Pku[1:] = -np.cumsum(Tku[1:]*glob.dk, axis=0) + Pku[0]
+                Eku = ekx + ekz
+                if glob.cmpTrn:
+                    Tku = Tkx + Tkz
 
-                PkT = np.zeros_like(TkT)
-                PkT[0] = -TkT[0]
-                PkT[1:] = -np.cumsum(TkT[1:]*glob.dk, axis=0) + PkT[0]
-            else:
-                Tku = np.zeros_like(Eku)
-                Pku = np.zeros_like(Eku)
-                PkT = np.zeros_like(EkT)
+                    Pku = np.zeros_like(Tku)
+                    Pku[0] = -Tku[0]
+                    Pku[1:] = -np.cumsum(Tku[1:]*glob.dk, axis=0) + Pku[0]
 
-            writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT)
+                    PkT = np.zeros_like(TkT)
+                    PkT[0] = -TkT[0]
+                    PkT[1:] = -np.cumsum(TkT[1:]*glob.dk, axis=0) + PkT[0]
+                else:
+                    Tku = np.zeros_like(Eku)
+                    Pku = np.zeros_like(Eku)
+                    PkT = np.zeros_like(EkT)
 
-            print("\tChecking energy balance")
-            energyCheck(Eku)
+                writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT)
+
+                print("\tChecking energy balance")
+                energyCheck(Eku)
 
     showPlot = 0
     if showPlot == 1:
