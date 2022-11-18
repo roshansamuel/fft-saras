@@ -1,3 +1,4 @@
+import sys
 import h5py as hp
 import numpy as np
 import nlinCalc as nlin
@@ -132,6 +133,12 @@ def writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT):
 
 
 def main():
+    # Set some global variables from CLI arguments
+    argList = sys.argv[1:]
+    if argList and len(argList) == 2:
+        glob.useTheta = bool(int(argList[0]))
+        glob.startTime = float(argList[1])
+
     # Load timelist
     tList = np.loadtxt(glob.dataDir + "output/timeList.dat", comments='#')
 
