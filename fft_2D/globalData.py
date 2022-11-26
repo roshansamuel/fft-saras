@@ -13,6 +13,12 @@ btX, btZ = 0.0, 0.0
 U, W, T, X, Z = 1, 1, 1, 1, 1
 nlx, nlz, nlT = 1, 1, 1
 
+# Variables to be considered - useful for very large files/small memory
+# 0 -> both V and T
+# 1 -> only V
+# 2 -> only T
+varMode = 0
+
 # Limit kShells
 kLim = True
 
@@ -92,6 +98,9 @@ EkT = np.zeros_like(kShell)
 # TE transfer function and flux
 TkT = np.zeros_like(kShell)
 PkT = np.zeros_like(kShell)
+
+# TE dissipation
+DkT = np.zeros_like(kShell)
 
 tVol = Lx*Lz
 

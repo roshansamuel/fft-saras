@@ -15,9 +15,16 @@ def loadData(fileName):
     print("\nReading from file ", fileName)
     sFile = hp.File(fileName, 'r')
 
-    glob.U = np.pad(np.array(sFile["Vx"]), 1)
-    glob.W = np.pad(np.array(sFile["Vz"]), 1)
-    glob.T = np.pad(np.array(sFile["T"]), 1)
+    if glob.varMode == 0:
+        glob.U = np.pad(np.array(sFile["Vx"]), 1)
+        glob.W = np.pad(np.array(sFile["Vz"]), 1)
+        glob.T = np.pad(np.array(sFile["T"]), 1)
+    elif glob.varMode == 1:
+        glob.U = np.pad(np.array(sFile["Vx"]), 1)
+        glob.W = np.pad(np.array(sFile["Vz"]), 1)
+    elif glob.varMode == 2:
+        glob.W = np.pad(np.array(sFile["Vz"]), 1)
+        glob.T = np.pad(np.array(sFile["T"]), 1)
 
     glob.X = np.pad(np.array(sFile["X"]), (1, 1), 'constant', constant_values=(0, glob.Lx))
     glob.Z = np.pad(np.array(sFile["Z"]), (1, 1), 'constant', constant_values=(0, glob.Lz))
@@ -27,7 +34,7 @@ def loadData(fileName):
     imposeBCs()
 
     # Subtract mean profile
-    if glob.useTheta:
+    if glob.varMode in [0, 2] and glob.useTheta:
         glob.T -= (1 - glob.Z)
 
 
@@ -38,12 +45,21 @@ def periodicBC(f):
 def imposeBCs():
     # Periodic along X
     glob.X[0], glob.X[-1] = -glob.X[1], glob.Lx + glob.X[1]
-    periodicBC(glob.U)
-    periodicBC(glob.W)
-    periodicBC(glob.T)
+
+    if glob.varMode == 0:
+        periodicBC(glob.U)
+        periodicBC(glob.W)
+        periodicBC(glob.T)
+    elif glob.varMode == 1:
+        periodicBC(glob.U)
+        periodicBC(glob.W)
+    elif glob.varMode == 2:
+        periodicBC(glob.W)
+        periodicBC(glob.T)
 
     # RBC
-    glob.T[:,0], glob.T[:,-1] = 1.0, 0.0
+    if glob.varMode in [0, 2]:
+        glob.T[:,0], glob.T[:,-1] = 1.0, 0.0
 
 
 def interpolateData(f, xO, zO):
@@ -59,25 +75,38 @@ def uniformInterp():
     xU = np.linspace(0.0, glob.Lx, Nx)
     zU = np.linspace(0.0, glob.Lz, Nz)
 
-    glob.U = interpolateData(glob.U, xU, zU)
-    glob.W = interpolateData(glob.W, xU, zU)
-    glob.T = interpolateData(glob.T, xU, zU)
+    if glob.varMode == 0:
+        glob.U = interpolateData(glob.U, xU, zU)
+        glob.W = interpolateData(glob.W, xU, zU)
+        glob.T = interpolateData(glob.T, xU, zU)
+    elif glob.varMode == 1:
+        glob.U = interpolateData(glob.U, xU, zU)
+        glob.W = interpolateData(glob.W, xU, zU)
+    elif glob.varMode == 2:
+        glob.W = interpolateData(glob.W, xU, zU)
+        glob.T = interpolateData(glob.T, xU, zU)
 
     if glob.cmpTrn and glob.realNLin:
-        glob.nlx = interpolateData(glob.nlx, xU, zU)
-        glob.nlz = interpolateData(glob.nlz, xU, zU)
-        glob.nlT = interpolateData(glob.nlT, xU, zU)
+        if glob.varMode == 0:
+            glob.nlx = interpolateData(glob.nlx, xU, zU)
+            glob.nlz = interpolateData(glob.nlz, xU, zU)
+            glob.nlT = interpolateData(glob.nlT, xU, zU)
+        elif glob.varMode == 1:
+            glob.nlx = interpolateData(glob.nlx, xU, zU)
+            glob.nlz = interpolateData(glob.nlz, xU, zU)
+        elif glob.varMode == 2:
+            glob.nlT = interpolateData(glob.nlT, xU, zU)
 
     glob.X = xU
     glob.Z = zU
 
 
-def energyCheck(Ek):
+def energyCheck():
     ke = (glob.U**2 + glob.W**2)/2.0
     keInt = integrate.simps(integrate.simps(ke, glob.Z), glob.X)/glob.tVol
     print("\t\tReal field energy =     {0:10.8f}".format(keInt))
 
-    keInt = np.sum(np.dot(Ek[1:], glob.dk)) + Ek[0]
+    keInt = np.sum(np.dot(glob.Eku[1:], glob.dk)) + glob.Eku[0]
     print("\t\tShell spectrum energy = {0:10.8f}".format(keInt))
 
 
@@ -87,29 +116,39 @@ def readFFT(tVal):
     print("\nReading from file ", fileName)
     sFile = hp.File(fileName, 'r')
 
-    kShell = np.array(sFile["kShell"])
-    ekx = np.array(sFile["ekx"])
-    ekz = np.array(sFile["ekz"])
-    EkT = np.array(sFile["EkT"])
+    glob.kShell = np.array(sFile["kShell"])
 
-    if glob.cmpTrn:
-        Tku = np.array(sFile["Tku"])
-        Pku = np.array(sFile["Pku"])
+    if glob.varMode == 0:
+        glob.ekx = np.array(sFile["ekx"])
+        glob.ekz = np.array(sFile["ekz"])
+        glob.Eku = np.array(sFile["Eku"])
+        glob.Tku = np.array(sFile["Tku"])
+        glob.Pku = np.array(sFile["Pku"])
+        glob.Fku = np.array(sFile["Fku"])
+        glob.Dku = np.array(sFile["Dku"])
 
-        TkT = np.array(sFile["TkT"])
-        PkT = np.array(sFile["PkT"])
-    else:
-        Tku = np.zeros_like(ekx)
-        Pku = np.zeros_like(ekx)
-        TkT = np.zeros_like(ekx)
-        PkT = np.zeros_like(ekx)
+        glob.EkT = np.array(sFile["EkT"])
+        glob.TkT = np.array(sFile["TkT"])
+        glob.PkT = np.array(sFile["PkT"])
+        glob.DkT = np.array(sFile["DkT"])
+    elif glob.varMode == 1:
+        glob.ekx = np.array(sFile["ekx"])
+        glob.ekz = np.array(sFile["ekz"])
+        glob.Eku = np.array(sFile["Eku"])
+        glob.Tku = np.array(sFile["Tku"])
+        glob.Pku = np.array(sFile["Pku"])
+        glob.Dku = np.array(sFile["Dku"])
+    elif glob.varMode == 2:
+        glob.EkT = np.array(sFile["EkT"])
+        glob.TkT = np.array(sFile["TkT"])
+        glob.PkT = np.array(sFile["PkT"])
+        glob.DkT = np.array(sFile["DkT"])
+        glob.Fku = np.array(sFile["Fku"])
 
     sFile.close()
 
-    return kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT
 
-
-def writeFFT(tVal, ekx, ekz, Tku, Pku, Fku, Dku, EkT, TkT, PkT, DkT):
+def writeFFT(tVal):
     fileName = glob.dataDir + "output/FFT_{0:09.4f}.h5".format(tVal)
 
     print("\tWriting into file ", fileName)
@@ -118,18 +157,32 @@ def writeFFT(tVal, ekx, ekz, Tku, Pku, Fku, Dku, EkT, TkT, PkT, DkT):
     if "kShell" not in sFile:
         dset = sFile.create_dataset("kShell", data = glob.kShell)
 
-    dset = sFile.create_dataset("ekx", data = ekx)
-    dset = sFile.create_dataset("ekz", data = ekz)
-    dset = sFile.create_dataset("EkT", data = EkT)
-    dset = sFile.create_dataset("Fku", data = Fku)
-    dset = sFile.create_dataset("Dku", data = Dku)
+    if glob.varMode == 0:
+        dset = sFile.create_dataset("ekx", data = glob.ekx)
+        dset = sFile.create_dataset("ekz", data = glob.ekz)
+        dset = sFile.create_dataset("Eku", data = glob.Eku)
+        dset = sFile.create_dataset("Tku", data = glob.Tku)
+        dset = sFile.create_dataset("Pku", data = glob.Pku)
+        dset = sFile.create_dataset("Fku", data = glob.Fku)
+        dset = sFile.create_dataset("Dku", data = glob.Dku)
 
-    if glob.cmpTrn:
-        dset = sFile.create_dataset("Tku", data = Tku)
-        dset = sFile.create_dataset("Pku", data = Pku)
-
-        dset = sFile.create_dataset("TkT", data = TkT)
-        dset = sFile.create_dataset("PkT", data = PkT)
+        dset = sFile.create_dataset("EkT", data = glob.EkT)
+        dset = sFile.create_dataset("TkT", data = glob.TkT)
+        dset = sFile.create_dataset("PkT", data = glob.PkT)
+        dset = sFile.create_dataset("DkT", data = glob.DkT)
+    elif glob.varMode == 1:
+        dset = sFile.create_dataset("ekx", data = glob.ekx)
+        dset = sFile.create_dataset("ekz", data = glob.ekz)
+        dset = sFile.create_dataset("Eku", data = glob.Eku)
+        dset = sFile.create_dataset("Tku", data = glob.Tku)
+        dset = sFile.create_dataset("Pku", data = glob.Pku)
+        dset = sFile.create_dataset("Dku", data = glob.Dku)
+    elif glob.varMode == 2:
+        dset = sFile.create_dataset("EkT", data = glob.EkT)
+        dset = sFile.create_dataset("TkT", data = glob.TkT)
+        dset = sFile.create_dataset("PkT", data = glob.PkT)
+        dset = sFile.create_dataset("DkT", data = glob.DkT)
+        dset = sFile.create_dataset("Fku", data = glob.Fku)
 
     sFile.close()
 
@@ -137,9 +190,10 @@ def writeFFT(tVal, ekx, ekz, Tku, Pku, Fku, Dku, EkT, TkT, PkT, DkT):
 def main():
     # Set some global variables from CLI arguments
     argList = sys.argv[1:]
-    if argList and len(argList) == 2:
-        glob.startTime = float(argList[0])
-        glob.stopTime = float(argList[1])
+    if argList and len(argList) == 3:
+        glob.varMode = int(argList[0])
+        glob.startTime = float(argList[1])
+        glob.stopTime = float(argList[2])
 
     # Load timelist
     tList = np.loadtxt(glob.dataDir + "output/timeList.dat", comments='#')
@@ -148,9 +202,7 @@ def main():
         tVal = tList[i]
         if tVal > glob.startTime and tVal < glob.stopTime:
             if glob.readFile:
-                kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT = readFFT(tVal)
-
-                Eku = ekx + ekz
+                readFFT(tVal)
 
             else:
                 fileName = glob.dataDir + "output/Soln_{0:09.4f}.h5".format(tVal)
@@ -159,11 +211,19 @@ def main():
                 # Compute non-linear terms
                 if glob.cmpTrn and glob.realNLin:
                     print("\tComputing non-linear term")
-                    glob.nlx, glob.nlz, glob.nlT = nlin.computeNLin()
 
-                    periodicBC(glob.nlx)
-                    periodicBC(glob.nlz)
-                    periodicBC(glob.nlT)
+                    if glob.varMode == 0:
+                        glob.nlx, glob.nlz, glob.nlT = nlin.computeNLin()
+                        periodicBC(glob.nlx)
+                        periodicBC(glob.nlz)
+                        periodicBC(glob.nlT)
+                    elif glob.varMode == 1:
+                        glob.nlx, glob.nlz = nlin.computeNLin()
+                        periodicBC(glob.nlx)
+                        periodicBC(glob.nlz)
+                    elif glob.varMode == 2:
+                        glob.nlT = nlin.computeNLin()
+                        periodicBC(glob.nlT)
                 else:
                     glob.nlx, glob.nlz, glob.nlT = 0, 0, 0
 
@@ -173,31 +233,23 @@ def main():
 
                 print("\tComputing FFT")
                 if glob.realNLin:
-                    ekx, ekz, Tkx, Tkz, EkT, TkT, Fku, Dku, DkT = fft.computeFFT(0, 0, 0, 0, 0)
+                    fft.computeFFT(0, 0, 0, 0, 0)
                 else:
-                    ekx, ekz, Tkx, Tkz, EkT, TkT, Fku, Dku, DkT = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
+                    fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
 
-                Eku = ekx + ekz
                 if glob.cmpTrn:
-                    Tku = Tkx + Tkz
+                    glob.Pku[0] = -glob.Tku[0]
+                    glob.Pku[1:] = -np.cumsum(glob.Tku[1:]*glob.dk, axis=0) + glob.Pku[0]
 
-                    Pku = np.zeros_like(Tku)
-                    Pku[0] = -Tku[0]
-                    Pku[1:] = -np.cumsum(Tku[1:]*glob.dk, axis=0) + Pku[0]
+                    glob.PkT[0] = -glob.TkT[0]
+                    glob.PkT[1:] = -np.cumsum(glob.TkT[1:]*glob.dk, axis=0) + glob.PkT[0]
 
-                    PkT = np.zeros_like(TkT)
-                    PkT[0] = -TkT[0]
-                    PkT[1:] = -np.cumsum(TkT[1:]*glob.dk, axis=0) + PkT[0]
-                else:
-                    Tku = np.zeros_like(Eku)
-                    Pku = np.zeros_like(Eku)
-                    PkT = np.zeros_like(EkT)
+                writeFFT(tVal)
 
-                writeFFT(tVal, ekx, ekz, Tku, Pku, Fku, Dku, EkT, TkT, PkT, DkT)
+                if glob.varMode < 2:
+                    print("\tChecking energy balance")
+                    energyCheck()
 
-                print("\tChecking energy balance")
-                energyCheck(Eku)
-
-    #plt.plotStuff((10, 12), [0])
+    plt.plotStuff((12, 10), [0])
 
 main()

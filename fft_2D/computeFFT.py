@@ -63,34 +63,71 @@ def computeFFT(uu, uw, ww, uT, wT):
 
     kSqr = kX**2 + kZ**2
 
-    uk = fft_2d(glob.U)
-    wk = fft_2d(glob.W)
-    tk = fft_2d(glob.T)
+    if glob.varMode == 0:
+        uk = fft_2d(glob.U)
+        wk = fft_2d(glob.W)
+        tk = fft_2d(glob.T)
+    elif glob.varMode == 1:
+        uk = fft_2d(glob.U)
+        wk = fft_2d(glob.W)
+    elif glob.varMode == 2:
+        wk = fft_2d(glob.W)
+        tk = fft_2d(glob.T)
 
     if glob.cmpTrn:
         if glob.realNLin:
-            nlinx = fft_2d(glob.nlx)
-            nlinz = fft_2d(glob.nlz)
-            nlinT = fft_2d(glob.nlT)
+            if glob.varMode == 0:
+                nlinx = fft_2d(glob.nlx)
+                nlinz = fft_2d(glob.nlz)
+                nlinT = fft_2d(glob.nlT)
+            elif glob.varMode == 1:
+                nlinx = fft_2d(glob.nlx)
+                nlinz = fft_2d(glob.nlz)
+            elif glob.varMode == 2:
+                nlinT = fft_2d(glob.nlT)
         else:
-            nlinx = 1j*(kx[:, np.newaxis]*fft_2d(uu) + kz*fft_2d(uw))
-            nlinz = 1j*(kx[:, np.newaxis]*fft_2d(uw) + kz*fft_2d(ww))
-            nlinT = 1j*(kx[:, np.newaxis]*fft_2d(uT) + kz*fft_2d(wT))
+            if glob.varMode == 0:
+                nlinx = 1j*(kx[:, np.newaxis]*fft_2d(uu) + kz*fft_2d(uw))
+                nlinz = 1j*(kx[:, np.newaxis]*fft_2d(uw) + kz*fft_2d(ww))
+                nlinT = 1j*(kx[:, np.newaxis]*fft_2d(uT) + kz*fft_2d(wT))
+            elif glob.varMode == 1:
+                nlinx = 1j*(kx[:, np.newaxis]*fft_2d(uu) + kz*fft_2d(uw))
+                nlinz = 1j*(kx[:, np.newaxis]*fft_2d(uw) + kz*fft_2d(ww))
+            elif glob.varMode == 2:
+                nlinT = 1j*(kx[:, np.newaxis]*fft_2d(uT) + kz*fft_2d(wT))
     else:
         nlinx, nlinz, nlinT = 0, 0, 0
 
     print("\tCalculating shell spectrum")
     # Calculate shell spectrum
     temp = np.zeros((Nx, Nz//2 + 1), dtype="complex")
-    ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)
-    ekz, Tkz = calcShellSpectrum(wk, temp, kSqr, nlinz)
-    ekT, TkT = calcShellSpectrum(tk, temp, kSqr, nlinT)
+    if glob.varMode == 0:
+        glob.ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)
+        glob.ekz, Tkz = calcShellSpectrum(wk, temp, kSqr, nlinz)
+        glob.EkT, glob.TkT = calcShellSpectrum(tk, temp, kSqr, nlinT)
 
-    print("\tCalculating F(k) and D(k)")
-    temp = np.zeros((Nx, Nz//2 + 1))
-    Fuk = calcForceSpectrum((np.conjugate(wk)*tk).real, temp, kSqr)
-    Duk = (glob.kShell**2)*(ekx + ekz)
-    DTk = (glob.kShell**2)*ekT
+        glob.Eku = glob.ekx + glob.ekz
+        glob.Tku = Tkx + Tkz
+    elif glob.varMode == 1:
+        glob.ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)
+        glob.ekz, Tkz = calcShellSpectrum(wk, temp, kSqr, nlinz)
 
-    return ekx, ekz, Tkx, Tkz, ekT, TkT, Fuk, Duk, DTk
+        glob.Eku = glob.ekx + glob.ekz
+        glob.Tku = Tkx + Tkz
+    elif glob.varMode == 2:
+        glob.EkT, glob.TkT = calcShellSpectrum(tk, temp, kSqr, nlinT)
+
+    if glob.varMode in [0, 2]:
+        print("\tCalculating F(k)")
+        temp = np.zeros((Nx, Nz//2 + 1))
+        glob.Fku = calcForceSpectrum((np.conjugate(wk)*tk).real, temp, kSqr)
+
+    print("\tCalculating D(k)")
+    if glob.varMode == 0:
+        glob.Dku = (glob.kShell**2)*glob.Eku
+        glob.DkT = (glob.kShell**2)*glob.EkT
+    elif glob.varMode == 1:
+        glob.Dku = (glob.kShell**2)*glob.Eku
+    elif glob.varMode == 2:
+        glob.DkT = (glob.kShell**2)*glob.EkT
 
