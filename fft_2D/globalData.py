@@ -32,7 +32,10 @@ useTheta = True
 readFile = False
 
 # Specify starting time for calculations. Use 0 to include all in timeList.dat
-startTime = 717.0
+startTime = 0.0
+
+# Specify ending time for calculations. Use Inf to include all in timeList.dat
+stopTime = float('Inf')
 
 # If YAML file is available, parse it
 if readYAML:
@@ -69,6 +72,26 @@ if kLim:
 
 dk = np.diff(kShell)
 arrLim = kShell.shape[0]
+
+# Kinetic energy spectrum
+ekx = np.zeros_like(kShell)
+ekz = np.zeros_like(kShell)
+Eku = np.zeros_like(kShell)
+
+# KE transfer function and flux
+Tku = np.zeros_like(kShell)
+Pku = np.zeros_like(kShell)
+
+# KE forcing and dissipation
+Fku = np.zeros_like(kShell)
+Dku = np.zeros_like(kShell)
+
+# Thermal energy spectrum
+EkT = np.zeros_like(kShell)
+
+# TE transfer function and flux
+TkT = np.zeros_like(kShell)
+PkT = np.zeros_like(kShell)
 
 tVol = Lx*Lz
 

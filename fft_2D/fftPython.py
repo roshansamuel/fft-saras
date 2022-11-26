@@ -1,19 +1,13 @@
 import sys
 import h5py as hp
 import numpy as np
+import plotData as plt
 import nlinCalc as nlin
 import computeFFT as fft
-import matplotlib as mpl
 import globalData as glob
 from scipy import interpolate
-import matplotlib.pyplot as plt
 from globalData import Nx, Nz
 import scipy.integrate as integrate
-
-mpl.style.use('classic')
-
-# Pyplot-specific directives
-plt.rcParams["font.family"] = "serif"
 
 print()
 
@@ -37,12 +31,16 @@ def loadData(fileName):
         glob.T -= (1 - glob.Z)
 
 
+def periodicBC(f):
+    f[0,:], f[-1,:] = f[-2,:], f[1,:]
+
+
 def imposeBCs():
     # Periodic along X
     glob.X[0], glob.X[-1] = -glob.X[1], glob.Lx + glob.X[1]
-    glob.U[0,:], glob.U[-1,:] = glob.U[-2,:], glob.U[1,:]
-    glob.W[0,:], glob.W[-1,:] = glob.W[-2,:], glob.W[1,:]
-    glob.T[0,:], glob.T[-1,:] = glob.T[-2,:], glob.T[1,:]
+    periodicBC(glob.U)
+    periodicBC(glob.W)
+    periodicBC(glob.T)
 
     # RBC
     glob.T[:,0], glob.T[:,-1] = 1.0, 0.0
@@ -111,16 +109,20 @@ def readFFT(tVal):
     return kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT
 
 
-def writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT):
+def writeFFT(tVal, ekx, ekz, Tku, Pku, Fku, Dku, EkT, TkT, PkT, DkT):
     fileName = glob.dataDir + "output/FFT_{0:09.4f}.h5".format(tVal)
 
     print("\tWriting into file ", fileName)
-    sFile = hp.File(fileName, 'w')
+    sFile = hp.File(fileName, 'a')
 
-    dset = sFile.create_dataset("kShell", data = glob.kShell)
+    if "kShell" not in sFile:
+        dset = sFile.create_dataset("kShell", data = glob.kShell)
+
     dset = sFile.create_dataset("ekx", data = ekx)
     dset = sFile.create_dataset("ekz", data = ekz)
     dset = sFile.create_dataset("EkT", data = EkT)
+    dset = sFile.create_dataset("Fku", data = Fku)
+    dset = sFile.create_dataset("Dku", data = Dku)
 
     if glob.cmpTrn:
         dset = sFile.create_dataset("Tku", data = Tku)
@@ -136,15 +138,15 @@ def main():
     # Set some global variables from CLI arguments
     argList = sys.argv[1:]
     if argList and len(argList) == 2:
-        glob.useTheta = bool(int(argList[0]))
-        glob.startTime = float(argList[1])
+        glob.startTime = float(argList[0])
+        glob.stopTime = float(argList[1])
 
     # Load timelist
     tList = np.loadtxt(glob.dataDir + "output/timeList.dat", comments='#')
 
     for i in range(tList.shape[0]):
         tVal = tList[i]
-        if tVal > glob.startTime:
+        if tVal > glob.startTime and tVal < glob.stopTime:
             if glob.readFile:
                 kShell, ekx, ekz, Tku, Pku, EkT, TkT, PkT = readFFT(tVal)
 
@@ -158,6 +160,10 @@ def main():
                 if glob.cmpTrn and glob.realNLin:
                     print("\tComputing non-linear term")
                     glob.nlx, glob.nlz, glob.nlT = nlin.computeNLin()
+
+                    periodicBC(glob.nlx)
+                    periodicBC(glob.nlz)
+                    periodicBC(glob.nlT)
                 else:
                     glob.nlx, glob.nlz, glob.nlT = 0, 0, 0
 
@@ -167,9 +173,9 @@ def main():
 
                 print("\tComputing FFT")
                 if glob.realNLin:
-                    ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(0, 0, 0, 0, 0)
+                    ekx, ekz, Tkx, Tkz, EkT, TkT, Fku, Dku, DkT = fft.computeFFT(0, 0, 0, 0, 0)
                 else:
-                    ekx, ekz, Tkx, Tkz, EkT, TkT = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
+                    ekx, ekz, Tkx, Tkz, EkT, TkT, Fku, Dku, DkT = fft.computeFFT(glob.U*glob.U, glob.U*glob.W, glob.W*glob.W, glob.U*glob.T, glob.W*glob.T)
 
                 Eku = ekx + ekz
                 if glob.cmpTrn:
@@ -187,35 +193,11 @@ def main():
                     Pku = np.zeros_like(Eku)
                     PkT = np.zeros_like(EkT)
 
-                writeFFT(tVal, ekx, ekz, Tku, Pku, EkT, TkT, PkT)
+                writeFFT(tVal, ekx, ekz, Tku, Pku, Fku, Dku, EkT, TkT, PkT, DkT)
 
                 print("\tChecking energy balance")
                 energyCheck(Eku)
 
-    showPlot = 0
-    if showPlot == 1:
-        plt.loglog(glob.kShell, Eku)
-        plt.ylabel("E(k)")
-        plt.xlabel("k")
-        plt.show()
-    elif showPlot == 2:
-        plt.plot(glob.kShell, Tku)
-        plt.xscale("log")
-        plt.yscale("symlog", linthreshy=1e-10)
-        plt.ylabel("T(k)")
-        #plt.ylim(-5e-3, 5e-3)
-        #plt.yticks([-5e-3, 0, 5e-3])
-        plt.xlabel("k")
-        plt.show()
-    elif showPlot == 3:
-        plt.plot(glob.kShell, Pku)
-        plt.xscale("log")
-        plt.yscale("symlog", linthreshy=1e-10)
-        plt.ylabel(r"$\Pi(k)$")
-        #plt.ylim(-5e-3, 5e-3)
-        #plt.yticks([-5e-3, 0, 5e-3])
-        plt.xlabel("k")
-        plt.show()
-
+    #plt.plotStuff((10, 12), [0])
 
 main()

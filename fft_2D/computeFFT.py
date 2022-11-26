@@ -8,6 +8,22 @@ def fft_2d(Ak):
     return fp.rfftn(Ak)/(Nx*Nz)
 
 
+def calcForceSpectrum(fk, temp, kSqr):
+    al = glob.arrLim
+
+    Fk = np.zeros(al)
+
+    temp[:,:] = fk[:,:]
+    temp[-1:Nx//2:-1, 0] = 0
+
+    Fk[0] = abs(fk[0,0])/2
+    for k in range(1, al):
+        index = np.where((kSqr > glob.kShell[k-1]**2) & (kSqr <= glob.kShell[k]**2))
+        Fk[k] = np.sum(temp[index])/glob.dk[k-1]
+
+    return Fk
+
+
 def calcShellSpectrum(fk, temp, kSqr, nlin):
     al = glob.arrLim
 
@@ -34,8 +50,6 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
 
 
 def computeFFT(uu, uw, ww, uT, wT):
-    temp = np.zeros((Nx, Nz//2 + 1), dtype="complex")
-
     kx = np.arange(0, Nx, 1)
     kz = np.arange(0, Nz//2 + 1, 1)
 
@@ -67,9 +81,16 @@ def computeFFT(uu, uw, ww, uT, wT):
 
     print("\tCalculating shell spectrum")
     # Calculate shell spectrum
+    temp = np.zeros((Nx, Nz//2 + 1), dtype="complex")
     ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)
     ekz, Tkz = calcShellSpectrum(wk, temp, kSqr, nlinz)
     ekT, TkT = calcShellSpectrum(tk, temp, kSqr, nlinT)
 
-    return ekx, ekz, Tkx, Tkz, ekT, TkT
+    print("\tCalculating F(k) and D(k)")
+    temp = np.zeros((Nx, Nz//2 + 1))
+    Fuk = calcForceSpectrum((np.conjugate(wk)*tk).real, temp, kSqr)
+    Duk = (glob.kShell**2)*(ekx + ekz)
+    DTk = (glob.kShell**2)*ekT
+
+    return ekx, ekz, Tkx, Tkz, ekT, TkT, Fuk, Duk, DTk
 
