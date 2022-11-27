@@ -15,15 +15,10 @@ def loadData(fileName):
     print("\nReading from file ", fileName)
     sFile = hp.File(fileName, 'r')
 
-    if glob.varMode == 0:
-        glob.U = np.pad(np.array(sFile["Vx"]), 1)
-        glob.W = np.pad(np.array(sFile["Vz"]), 1)
-        glob.T = np.pad(np.array(sFile["T"]), 1)
-    elif glob.varMode == 1:
-        glob.U = np.pad(np.array(sFile["Vx"]), 1)
-        glob.W = np.pad(np.array(sFile["Vz"]), 1)
-    elif glob.varMode == 2:
-        glob.W = np.pad(np.array(sFile["Vz"]), 1)
+    glob.U = np.pad(np.array(sFile["Vx"]), 1)
+    glob.W = np.pad(np.array(sFile["Vz"]), 1)
+
+    if glob.varMode != 1:
         glob.T = np.pad(np.array(sFile["T"]), 1)
 
     glob.X = np.pad(np.array(sFile["X"]), (1, 1), 'constant', constant_values=(0, glob.Lx))
@@ -46,19 +41,13 @@ def imposeBCs():
     # Periodic along X
     glob.X[0], glob.X[-1] = -glob.X[1], glob.Lx + glob.X[1]
 
-    if glob.varMode == 0:
-        periodicBC(glob.U)
-        periodicBC(glob.W)
-        periodicBC(glob.T)
-    elif glob.varMode == 1:
-        periodicBC(glob.U)
-        periodicBC(glob.W)
-    elif glob.varMode == 2:
-        periodicBC(glob.W)
+    periodicBC(glob.U)
+    periodicBC(glob.W)
+
+    if glob.varMode != 1:
         periodicBC(glob.T)
 
-    # RBC
-    if glob.varMode in [0, 2]:
+        # RBC
         glob.T[:,0], glob.T[:,-1] = 1.0, 0.0
 
 
@@ -75,15 +64,9 @@ def uniformInterp():
     xU = np.linspace(0.0, glob.Lx, Nx)
     zU = np.linspace(0.0, glob.Lz, Nz)
 
-    if glob.varMode == 0:
-        glob.U = interpolateData(glob.U, xU, zU)
-        glob.W = interpolateData(glob.W, xU, zU)
-        glob.T = interpolateData(glob.T, xU, zU)
-    elif glob.varMode == 1:
-        glob.U = interpolateData(glob.U, xU, zU)
-        glob.W = interpolateData(glob.W, xU, zU)
-    elif glob.varMode == 2:
-        glob.W = interpolateData(glob.W, xU, zU)
+    glob.U = interpolateData(glob.U, xU, zU)
+    glob.W = interpolateData(glob.W, xU, zU)
+    if glob.varMode != 1:
         glob.T = interpolateData(glob.T, xU, zU)
 
     if glob.cmpTrn and glob.realNLin:
