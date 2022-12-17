@@ -52,10 +52,10 @@ if readYAML:
     yr.parseYAML(dataDir)
 
 # Generate kShells
-# Basis - FF
-# With F along both X and Z, max k is halved in both directions, and kFactor is 2*pi/L for both
-nGrid = np.array([Nx//2, Nz//2])
-kFactor = np.array([2.0*np.pi/Lx, 2.0*np.pi/Lz])
+# Basis - FS
+# With F along X and S along Z, max k is halved only along X direction, and kFactor is 2*pi/L for X and pi/L for Z
+nGrid = np.array([Nx//2, Nz])
+kFactor = np.array([2.0*np.pi/Lx, np.pi/Lz])
 
 kInt = min(kFactor)
 maxRad = np.sqrt(np.dot(nGrid*kFactor, nGrid*kFactor))

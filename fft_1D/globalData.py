@@ -40,7 +40,7 @@ def genGrid(N, L, bt):
         xix2 = np.array([k*k for k in xi_x])
     else:
         xPts = L*xi
-        xi_x = np.ones_like(xPts)
+        xi_x = np.ones_like(xPts)/L
         xix2 = xi_x**2
         xixx = np.zeros_like(xPts)
 

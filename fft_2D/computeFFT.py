@@ -50,19 +50,6 @@ def calcShellSpectrum(fk, temp, kSqr, nlin):
 
 
 def computeFFT(uu, uw, ww, uT, wT):
-    kx = np.arange(0, Nx, 1)
-    kz = np.arange(0, Nz//2 + 1, 1)
-
-    # Shift the wavenumbers
-    kx[Nx//2+1:] = kx[Nx//2+1:] - Nx
-
-    kx = kx*glob.kFactor[0]
-    kz = kz*glob.kFactor[1]
-
-    kX, kZ = np.meshgrid(kx, kz, indexing='ij')
-
-    kSqr = kX**2 + kZ**2
-
     if glob.varMode == 0:
         uk = fft_2d(glob.U)
         wk = fft_2d(glob.W)
@@ -73,6 +60,15 @@ def computeFFT(uu, uw, ww, uT, wT):
     elif glob.varMode == 2:
         wk = fft_2d(glob.W)
         tk = fft_2d(glob.T)
+
+    kx = np.arange(0, Nx, 1)
+    kz = np.arange(0, Nz//2 + 1, 1)
+
+    # Shift the wavenumbers
+    kx[Nx//2+1:] = kx[Nx//2+1:] - Nx
+
+    kx = kx*glob.kFactor[0]
+    kz = kz*glob.kFactor[1]
 
     if glob.cmpTrn:
         if glob.realNLin:
@@ -98,9 +94,13 @@ def computeFFT(uu, uw, ww, uT, wT):
     else:
         nlinx, nlinz, nlinT = 0, 0, 0
 
-    print("\tCalculating shell spectrum")
     # Calculate shell spectrum
+    print("\tCalculating shell spectrum")
     temp = np.zeros((Nx, Nz//2 + 1), dtype="complex")
+
+    kX, kZ = np.meshgrid(kx, kz, indexing='ij')
+    kSqr = kX**2 + kZ**2
+
     if glob.varMode == 0:
         glob.ekx, Tkx = calcShellSpectrum(uk, temp, kSqr, nlinx)
         glob.ekz, Tkz = calcShellSpectrum(wk, temp, kSqr, nlinz)

@@ -65,9 +65,9 @@ def interpolateData(f, xO, yO, zO):
 
 
 def uniformInterp():
-    xU = np.linspace(0.0, glob.Lx, Nx)
-    yU = np.linspace(0.0, glob.Ly, Ny)
-    zU = np.linspace(0.0, glob.Lz, Nz)
+    xU = np.linspace(0.0, glob.Lx, Nx, endpoint=False)
+    yU = np.linspace(0.0, glob.Ly, Ny, endpoint=False)
+    zU = np.linspace(0.0, glob.Lz, Nz, endpoint=False)
 
     glob.U = interpolateData(glob.U, xU, yU, zU)
     glob.V = interpolateData(glob.V, xU, yU, zU)
